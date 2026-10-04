@@ -1,8 +1,25 @@
-node_modules/
+# secrets
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+
+# model weights and caches (Private Mode downloads these in the browser; never commit them)
+models/
 spike/models/
 *.onnx
 *.onnx_data
+*.task
+*.litertlm
+*.gguf
+*.safetensors
+
+# local tooling and artifacts
+node_modules/
 .claude/
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+desktop.ini

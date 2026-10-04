@@ -161,3 +161,28 @@ Found while testing:
 - The check script itself had a bug (submitting an empty goal after a reload); not an app problem.
 
 Not re-run after the redesign: the stub-server failure cases in the browser (model down, slow, junk). Their logic is unchanged and still covered by `npm test`; only the label text changed to "Built-in step".
+
+## 2026-10-04: pre-push verification (no app code changed)
+
+Failure cases in the redesigned UI (`scripts/browser-failures.mjs`, Chrome, 390 × 844, stub servers): 16 of 16 checks pass.
+- Model down and junk output: first step, "I'm stuck", recovery and completion all fall back to built-in text, labelled "Built-in step" / "Written by FocusLoop", never attributed to Gemma. Recovery still reads "You're back."
+- Slow model: "Finding a small step…" shown with the form locked; built-in step after 20.0 s; a second submit while waiting did not start a second session.
+- The first attempt at this run hit one page-load timeout against the junk-output server before any check ran; the rerun passed in full. Cause not established.
+
+Private Mode in Chrome (`scripts/browser-private.mjs`, headless Chrome with WebGPU, fresh profile, model files served from this machine):
+- WebGPU adapter present with `shader-f16`.
+- Ready 233 s after turning it on (slower than the 21 to 58 s seen in the app's own browser pane; not investigated).
+- First step in 13.0 s, labelled "Gemma on this device", with 0 requests to `/api/ai`.
+- The "did not keep the model" notice did not appear, which means the weights file was found in the browser cache after loading. Whether it survives a browser restart was not tested.
+- Screenshots: `docs/evidence/screens/private/`.
+
+Secrets audit (working tree, index, all 3 commits):
+- The real API key from `.env`: not found in any tracked or untracked file, in the index, or in any commit.
+- Credential patterns (Google, OpenAI-style, GitHub, Hugging Face, Slack, private-key headers): none.
+- `.env` and env-like files in history: only `.env.example`, which holds no key.
+- Model weights or blobs over 500 KB in history: none. Largest tracked file is a 163 KB screenshot.
+- Personal information in files: none. Screenshots carry no text or EXIF metadata.
+- Commit metadata carries the committer's name and email address, as configured in git.
+- `.gitignore` extended to cover more weight formats, key files, logs and OS files; checked with `git check-ignore`.
+
+`npm test`: 42 tests, 42 pass.

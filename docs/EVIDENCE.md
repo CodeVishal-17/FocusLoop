@@ -9,17 +9,14 @@
 - `docs/design/proposal.html`: the design proposal the UI was built from.
 - `docs/superpowers/specs/2026-10-04-focusloop-design.md`: architecture and the spike numbers behind it.
 - `spike/index.html`: the throwaway page used to measure in-browser Gemma.
+- `docs/evidence/screens/private/`: Private Mode downloading, Private Mode active, and a step labelled "Gemma on this device", from Chrome with WebGPU. The run recorded 0 requests to `/api/ai`.
+- `docs/evidence/screens/failures/`: model down, junk output and slow model in the redesigned UI, each showing the "Built-in step" label.
 
 ## Still to capture by hand
 
-The automated run only uses Fast Mode. These need a real browser window:
-
-1. `private-downloading.png`: mode panel while the model downloads (progress bar, "Fast Mode is answering until it is ready").
-2. `private-on.png`: a step whose label reads "Gemma on this device", with the header showing "Private Mode".
-3. `private-network.png`: browser DevTools Network tab showing no `/api/ai` request while Private Mode answers.
-4. `fallback.png`: with the server's model unreachable, a step labelled "Built-in step".
-5. `tests.png`: terminal output of `npm test`.
-6. A photo or screen recording of the friend's first use, if he agrees.
+1. `tests.png`: terminal output of `npm test`.
+2. A DevTools Network screenshot with Private Mode answering, if you want visual proof of the zero-request result.
+3. A photo or screen recording of the friend's first use, if he agrees.
 
 ## Before/after worth showing in the post
 
