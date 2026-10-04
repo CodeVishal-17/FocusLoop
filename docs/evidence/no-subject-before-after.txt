@@ -1,0 +1,123 @@
+### BEFORE the no-subject fix (prompt at de0f10d)
+No subject in the goal: the step must not invent one
+WEAK I don't feel like studying             -> Trace one worked example of a simple equation from your notes, focusing on the key steps. (3 min)   [invented subject: "equation"]
+ok   I don't feel like studying             -> Identify the three branches of the government and list them out in a sentence. (3 min)
+WEAK I don't feel like studying             -> Trace one worked example of a simple algebraic equation from your notes and check it against the formula. (3 min)   [invented subject: "equation"]
+ok   I don't feel like studying             -> Recall the first definition of a molecule and explain it in one sentence. (3 min)
+ok   I don't know what to study             -> Write the definition of photosynthesis in your notes, then check it against your textbook. (3 min)
+ok   I don't know what to study             -> Summarize the definition of photosynthesis in 2 sentences. (3 min)
+ok   I don't know what to study             -> Read the definition of homeostasis and then write down one thing that maintains homeostasis in your life. (3 min)
+ok   I don't know what to study             -> Find the first key term in your textbook and explain it in one sentence. (3 min)
+WEAK I need to study but I can't start      -> Recall the definition of a variable in your biology notes, then write one sentence explaining its importance. (3 min)   [invented subject: "biology"]
+WEAK I need to study but I can't start      -> Recall the formula for slope and find the value in your math notes. (3 min)   [invented subject: "math"]
+ok   I need to study but I can't start      -> Identify the key terms from your chapter and briefly explain their meaning. (3 min)
+ok   I need to study but I can't start      -> Write down the first step you can take towards the concept you need to study. (2 min)
+ok   I can't get myself to start            -> Write down three things that make you feel comfortable and focused on your studies. (3 min)
+ok   I can't get myself to start            -> Describe one thing you like about the topic in three sentences. (3 min)
+ok   I can't get myself to start            -> Choose one definition, then try to recall it in 30 seconds – it’s a small start. (3 min)
+ok   I can't get myself to start            -> Identify the three basic steps of the scientific method and write them down. (3 min)
+WEAK so much to do, no idea where to begin  -> Identify three things you can do to start with studying biology, then choose one. (3 min)   [invented subject: "biology"]
+WEAK so much to do, no idea where to begin  -> Identify one small, manageable task related to your biology topic and write it down. (1 min)   [invented subject: "biology"]
+WEAK so much to do, no idea where to begin  -> List three things you can tackle in the next 5 minutes based on your biology notes. (3 min)   [invented subject: "biology"]
+WEAK so much to do, no idea where to begin  -> Write down one thing you’re hoping to achieve today related to biology. (2 min)   [invented subject: "biology"]
+
+ollama gemma3:1b: 12/20 no-subject steps are clean
+
+No subject in the goal: the step must not invent one
+ok   I don't feel like studying             -> Read one definition from your current subject and write one sentence explaining it in your own words. (2 min)
+ok   I don't feel like studying             -> Read one definition from your current topic and then write one sentence explaining it in your own words. (2 min)
+ok   I don't feel like studying             -> Read one definition from your notes and restate it in your own words. (2 min)
+ok   I don't feel like studying             -> Read one definition from your notes and then write a one-sentence explanation of it. (2 min)
+ok   I don't know what to study             -> Pick any single term from your textbook and write one sentence explaining what it means. (2 min)
+ok   I don't know what to study             -> Pick any single term from your most recent lecture notes, read it, and write one sentence explaining it. (2 min)
+ok   I don't know what to study             -> Pick the first concept in your notes, read its definition, and write one sentence explaining it. (3 min)
+ok   I don't know what to study             -> Pick any single term from your most recent lecture notes and write a one-sentence explanation of it. (2 min)
+ok   I need to study but I can't start      -> Read one definition from your notes and then write one sentence explaining it in your own words. (2 min)
+ok   I need to study but I can't start      -> Read one concept in your notes and write one sentence explaining it to yourself. (2 min)
+ok   I need to study but I can't start      -> Read the definition of one core concept in your notes and write a one-sentence explanation of it. (2 min)
+ok   I need to study but I can't start      -> Read one definition from your notes and write a single sentence explaining it in your own words. (2 min)
+ok   I can't get myself to start            -> Read one definition from your current subject and write one sentence explaining it in your own words. (2 min)
+ok   I can't get myself to start            -> Read the definition of one concept in your notes and write one sentence explaining it. (2 min)
+ok   I can't get myself to start            -> Read one specific concept from your notes and write one sentence explaining it in your own words. (2 min)
+ok   I can't get myself to start            -> Read the very first definition in your notes and write one sentence explaining it. (2 min)
+ok   so much to do, no idea where to begin  -> Pick one concept from your notes, read its definition, and write one sentence explaining it. (3 min)
+ok   so much to do, no idea where to begin  -> Pick one concept from your notes, read its definition, and write one sentence explaining it. (2 min)
+ok   so much to do, no idea where to begin  -> Pick the first topic in your notes and write one sentence explaining its core concept. (2 min)
+ok   so much to do, no idea where to begin  -> Pick the first concept in your notes, read its definition, and write one sentence explaining it. (3 min)
+
+google gemma-4-26b-a4b-it: 20/20 no-subject steps are clean
+
+### AFTER the no-subject fix (full first-step check, both models)
+ok   I want to study Operating Systems  -> Read the first definition of process management in your Operating Systems notes, then restate it in your own words. (3 min)
+ok   I want to study Operating Systems  -> Read the definition of process management and restate it in your own words. (3 min)
+ok   I need to study DBMS               -> Read the definition of normalization in your DBMS notes, then write one example of how it’s used. (3 min)
+ok   I need to study DBMS               -> Write the definition of a primary key in your DBMS notes, then restate it in your own words. (3 min)
+ok   I have a physics exam              -> Explain the concept of inertia in your physics notes, then write a sentence about its importance. (5 min)
+ok   I have a physics exam              -> Read the definition of Newton's First Law in your physics notes, then restate it in your own words. (3 min)
+ok   I need to study calculus           -> Read the definition of a derivative in your calculus notes, then explain it in your own words. (5 min)
+ok   I need to study calculus           -> Read the definition of tangent and secant in your calculus notes, then write one example of each. (3 min)
+ok   I want to practice Python          -> Write the definition of a variable in Python, then write a simple Python code snippet that assigns a value to a variable. (5 min)
+ok   I want to practice Python          -> Write the function definition for a function that calculates the area of a rectangle in Python. (5 min)
+
+ollama gemma3:1b: 10/10 pass every check
+
+No subject in the goal: the step must not invent one
+ok   I don't feel like studying             -> Read the first definition of the chosen topic, then restate it in your own words. (3 min)
+ok   I don't feel like studying             -> Read the definition of one topic, then write down one thing you remember about it. (2 min)
+ok   I don't feel like studying             -> Review the definition of the topic, then write down a short sentence about what you already know about it. (3 min)
+ok   I don't feel like studying             -> Identify a single concept, and then reread its first definition. (2 min)
+ok   I don't know what to study             -> Read the first definition of the topic, then write down one thing you already know about it. (2 min)
+ok   I don't know what to study             -> Read the first definition of the topic and restate it in your own words. (3 min)
+ok   I don't know what to study             -> Read the first definition of the chosen topic and restate it in your own words. (3 min)
+ok   I don't know what to study             -> Read the definition and restate it in your own words, then jot down one question you’d like answered about it. (5 min)
+ok   I need to study but I can't start      -> Define the topic in your own words, then write down one question you want answered about it. (3 min)
+ok   I need to study but I can't start      -> Write down the name of one topic you need to study, then read the first definition. (2 min)
+ok   I need to study but I can't start      -> Read the first statement of a defined topic, then state the first question you want answered about it. (2 min)
+ok   I need to study but I can't start      -> Read the first definition of the chosen topic, then restate it to yourself. (2 min)
+ok   I can't get myself to start            -> Define the topic, then write down one thing you already know about it. (3 min)
+ok   I can't get myself to start            -> Identify a single definition of the chosen topic and restate it in your own words. (3 min)
+WEAK I can't get myself to start            -> Decide on one topic you need to study; then, find the first definition of that topic. (3 min)   [setup-only]
+ok   I can't get myself to start            -> Define the topic briefly, then list one key fact of it. (3 min)
+ok   so much to do, no idea where to begin  -> Define the topic, then write down one question you want answered about it. (3 min)
+WEAK so much to do, no idea where to begin  -> Start with one question related to the chosen topic from your notes. (2 min)   [setup-only]
+ok   so much to do, no idea where to begin  -> State one definition of the topic you’re focusing on, then write the first question you want answered about it. (2 min)
+ok   so much to do, no idea where to begin  -> Identify a single aspect of the topic and write down three things you know about it. (3 min)
+
+ollama gemma3:1b: 18/20 no-subject steps are clean
+
+ok   I want to study Operating Systems  -> Read the definition of a process in your operating systems notes and restate it in your own words. (2 min)
+ok   I want to study Operating Systems  -> Read the definition of a process in your operating systems notes and restate it in your own words. (2 min)
+ok   I need to study DBMS               -> Read the definition of a primary key in your DBMS notes and restate it in your own words. (2 min)
+ok   I need to study DBMS               -> Read the definition of a primary key in your DBMS notes and restate it in your own words. (2 min)
+ok   I have a physics exam              -> Read the definition of Newton's Second Law and write one sentence explaining how force affects acceleration. (3 min)
+ok   I have a physics exam              -> Read the definition of Newton's Second Law in your physics notes and write one sentence explaining it. (3 min)
+ok   I need to study calculus           -> Trace one worked example of a power rule derivative in your calculus book to understand each step. (5 min)
+ok   I need to study calculus           -> Read the definition of a derivative in your calculus notes and write one sentence explaining it in your own words. (3 min)
+ok   I want to practice Python          -> Write three lines of Python code that use a for loop to print numbers from one to five. (5 min)
+ok   I want to practice Python          -> Write three lines of Python code that use a for loop to print numbers from one to five. (5 min)
+
+google gemma-4-26b-a4b-it: 10/10 pass every check
+
+No subject in the goal: the step must not invent one
+ok   I don't feel like studying             -> Pick one topic and write its first definition in your own words. (2 min)
+ok   I don't feel like studying             -> Pick one topic and write out its first definition in your own words. (2 min)
+WEAK I don't feel like studying             -> Pick one topic and restate its first definition in your own words. (2 min)   [setup-only]
+ok   I don't feel like studying             -> Select one topic and write its first definition in your own words. (2 min)
+ok   I don't know what to study             -> Pick one topic from your list and write its first definition in your own words. (2 min)
+ok   I don't know what to study             -> Pick any topic from your list, read its first definition, and restate it in your own words. (2 min)
+ok   I don't know what to study             -> Identify one topic from your list and write its first definition in your own words. (2 min)
+ok   I don't know what to study             -> Select one topic from your list and write down its first definition in your own words. (2 min)
+ok   I need to study but I can't start      -> Pick one topic and write its first definition in your own words. (2 min)
+ok   I need to study but I can't start      -> Pick one topic and write its first definition in your own words. (2 min)
+WEAK I need to study but I can't start      -> Pick one topic and restate its first definition in your own words. (2 min)   [setup-only]
+ok   I need to study but I can't start      -> Pick one topic and write its first definition in your own words. (2 min)
+ok   I can't get myself to start            -> Pick one topic and write down its first definition in your own words. (2 min)
+ok   I can't get myself to start            -> Select one topic and write its first definition in your own words. (2 min)
+ok   I can't get myself to start            -> Pick one topic and write down its first definition in your own words. (2 min)
+ok   I can't get myself to start            -> Pick one topic and write out its first definition in your own words. (2 min)
+ok   so much to do, no idea where to begin  -> Pick one topic and write its first definition in your own words. (2 min)
+ok   so much to do, no idea where to begin  -> Pick one topic and write its first definition in your own words. (2 min)
+ok   so much to do, no idea where to begin  -> Pick one topic and write its first definition in your own words. (2 min)
+ok   so much to do, no idea where to begin  -> Pick one topic and write its first definition in your own words. (2 min)
+
+google gemma-4-26b-a4b-it: 18/20 no-subject steps are clean

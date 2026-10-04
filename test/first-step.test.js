@@ -85,3 +85,74 @@ test('built-in first steps are study actions for every vague goal', () => {
   }
   assert.equal(new Set([0, 1, 2].map((n) => fallbackFor('nextAction', {}, n).action)).size, 3);
 });
+
+// --- no subject in the goal: the model must not invent one ---
+import { namesSubject } from '../public/core/prompts.js';
+import { NO_SUBJECT_GOALS, inventedSubject } from '../scripts/first-step-quality.js';
+
+const REPORTED = ["I don't feel like studying", "I don't know what to study", "I need to study but I can't start"];
+
+test('goals without a subject are recognised by rule, not by a list of sentences', () => {
+  for (const goal of [...REPORTED, ...NO_SUBJECT_GOALS, 'I have an exam tomorrow', "i'm so behind, it's all due", 'need to start my homework', 'help me begin', 'ugh', 'I feel sad and unmotivated', 'I keep scrolling instagram']) {
+    assert.equal(namesSubject(goal), false, goal);
+  }
+  // Known limit: any word the rule does not know counts as a possible subject.
+  for (const goal of ['asdfgh qwerty', 'write me a poem']) assert.equal(namesSubject(goal), true, goal);
+  for (const goal of [...VAGUE_GOALS.map((g) => g.goal), 'maths', 'study C', 'R programming', 'organic chemistry reactions', 'padhai karni hai physics ki', "I don't feel like studying thermodynamics"]) {
+    assert.equal(namesSubject(goal), true, goal);
+  }
+});
+
+test('contamination checker catches the reported leaks and passes neutral steps', () => {
+  for (const leaked of [
+    'Trace one worked example of a simple market analysis, focusing on a single economic indicator.',
+    'Write the basic concept of a binary search algorithm in your notes, then check it against your understanding.',
+    'Trace one worked example of a simple supply and demand graph.',
+    'Read the definition of photosynthesis in your biology notes, then write one example of how it works.',
+    'Recall the formula for slope and find the value in your math notes.',
+    'Write a Python function that adds two numbers.',
+    'Read the definition of a process in your Operating Systems notes.',
+    'Read the definition of a primary key in your DBMS notes.',
+    'Solve the first calculus problem in your exercise.',
+    "Write Newton's second law from memory for your physics exam.",
+  ]) assert.ok(inventedSubject(leaked), leaked);
+  for (const neutral of [
+    'Write down the name of one topic you need to study, then read its first definition.',
+    'Choose one topic you need to study and write the first question you want to answer about it.',
+    'Pick one topic and write its first definition in your own words.',
+    'Read the first definition of one topic and restate it in your own words.',
+  ]) assert.equal(inventedSubject(neutral), null, neutral);
+});
+
+test('a no-subject goal is shown nothing a model could copy a subject from', () => {
+  for (const goal of [...REPORTED, ...NO_SUBJECT_GOALS]) {
+    const messages = buildMessages('nextAction', { goal });
+    const shown = messages.slice(0, -1).map((m) => m.content).join('\n');
+    assert.equal(inventedSubject(shown), null, `prompt for "${goal}" contains: ${inventedSubject(shown)}`);
+    assert.match(messages[0].content, /Never name or guess a subject/);
+    assert.match(messages[0].content, /setup-only/);
+    assert.equal(messages.at(-1).content, `Goal: ${goal}`);
+    const examples = messages.filter((m) => m.role === 'assistant').map((m) => parseAction(m.content));
+    assert.ok(examples.length >= 2);
+    for (const ex of examples) assert.deepEqual(assessFirstStep(ex.action), [], ex.action);
+  }
+});
+
+test('a goal with a subject still gets the subject examples and the no-borrowing rule', () => {
+  const messages = buildMessages('nextAction', { goal: 'I need to study DBMS' });
+  assert.match(messages[0].content, /Never borrow a subject or concept from the examples/);
+  assert.ok(messages.some((m) => m.role === 'assistant' && /osmosis/.test(m.content)));
+});
+
+test('the other tasks are unaffected by subject detection', () => {
+  for (const task of ['unstick', 'recover', 'reflect']) {
+    const withSubject = buildMessages(task, { goal: 'study DBMS', tried: ['x'], action: 'x', minutes: 5 });
+    const without = buildMessages(task, { goal: "I don't feel like studying", tried: ['x'], action: 'x', minutes: 5 });
+    assert.equal(withSubject[0].content, without[0].content);
+    assert.equal(withSubject.length, without.length);
+  }
+});
+
+test('built-in first steps invent no subject either', () => {
+  for (const goal of REPORTED) for (let n = 0; n < 3; n++) assert.equal(inventedSubject(fallbackFor('nextAction', { goal }, n).action), null);
+});

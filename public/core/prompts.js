@@ -19,7 +19,22 @@ const FIRST_STEP = [
   'It takes 1 to 5 minutes and leaves the student in the middle of the material.',
   'Never give a setup-only step such as opening a book, finding notes, or reading an index, table of contents or heading, unless the student says getting set up is their problem.',
   'One sentence, at most 25 words. Never give lists, plans, advice about breathing or feelings, or motivation.',
-  'If the goal names no subject or is not about studying, give a study action on whatever topic they are currently on.',
+  'Use only the subject or topic that appears in the goal. Never borrow a subject or concept from the examples.',
+  'If the goal turns out to name no real subject, or is not about studying, never refuse, never ask for a subject and never invent one: the action is then to pick one topic they need to study, read its first definition and restate it in their own words.',
+  'Reply with JSON only: {"action": "<one sentence, max 25 words>", "minutes": <integer 1-5>}',
+].join(' ');
+
+// Used when the goal names no subject ("I don't feel like studying"). A small
+// model copies nouns from whatever it is shown: with subject examples in view,
+// Gemma 3 1B answered such goals with economics, biology or photosynthesis.
+// Telling it not to did not help; showing it nothing to copy does. So this
+// prompt and its examples contain no subject, concept or example topic at all.
+const FIRST_STEP_NO_SUBJECT = [
+  'The student wants to study but has not said what. Give ONE tiny first study action that works for any subject.',
+  'Have them pick one topic they need to study and do something real with it: read its first definition and restate it, write the first question they want answered about it, or write what they already remember and check it.',
+  'Never name or guess a subject, a concept, or an example topic of your own. Use only neutral words such as topic, definition, question, notes.',
+  'It takes 1 to 5 minutes. Never give a setup-only step such as opening a book or finding notes.',
+  'One sentence, at most 25 words. Never give lists, plans, advice about breathing or feelings, or motivation.',
   'Reply with JSON only: {"action": "<one sentence, max 25 words>", "minutes": <integer 1-5>}',
 ].join(' ');
 
@@ -31,12 +46,17 @@ const SYSTEM = {
 };
 
 const SHOTS = {
+  // Subject examples teach the kinds of real first step: restate, recall, solve.
   nextAction: [
-    // One example per kind of real first step: restate, recall, solve, and the no-subject case.
     ['Goal: I need to study biology', '{"action": "Read the definition of osmosis in your biology notes, then write one everyday example of it.", "minutes": 3}'],
     ['Goal: economics exam tomorrow, havent started', '{"action": "Write the law of demand from memory in one sentence, then check it against your economics notes.", "minutes": 2}'],
     ['Goal: statistics homework', '{"action": "Solve the first mean and median problem in your statistics exercise without looking at the solution.", "minutes": 4}'],
-    ['Goal: i dont feel like doing anything', '{"action": "Read one definition from the topic you are on and say it out loud in your own words.", "minutes": 2}'],
+  ],
+  // Shown instead of the set above when the goal names no subject. Nothing here can leak.
+  nextActionNoSubject: [
+    ['Goal: i dont feel like doing anything', '{"action": "Write down the name of one topic you need to study, then read its first definition.", "minutes": 2}'],
+    ['Goal: everything is due and i am lost', '{"action": "Choose one topic you need to study and write the first question you want to answer about it.", "minutes": 2}'],
+    ['Goal: cant make myself begin', '{"action": "Pick the topic you looked at last, write two things you remember about it, then check them in your notes.", "minutes": 3}'],
   ],
   unstick: [
     ['Goal: I need to study DBMS\nAlready tried: Open your DBMS notes and read the first heading and its first paragraph.', '{"action": "Write the title of the first DBMS topic at the top of a blank page.", "minutes": 1}'],
@@ -69,12 +89,34 @@ function userTurn(task, input) {
   return goal;
 }
 
+// Words that say something about studying, feelings, time or quantity but never
+// name what is being studied. A goal made only of these names no subject.
+const GENERIC_WORDS = new Set(`a about again all already always am an and any anything are as at be because been before begin beginning behind big bored but
+by can cannot cant could day days do doing don dont due else even every everything exam exams feel feeling feels finish first focus for from get getting go going got had hard has
+have havent help here hours how i idea if im in is it its just keep know later lazy learn learning like lost lot lots make me motivated motivation much must my myself
+need never next no not nothing now of on one or out overwhelmed please prepare procrastinating really revise revision should so some something start started starting still stressed
+stuck studied studies study studying stuff subject subjects t than that the there thing things this time tired to today tomorrow tonight too topic topics up
+ve very want was week what when where which why will with work would yet you
+d ll m re s homework assignment assignments test tests class classes course college school
+afraid angry anxious anymore awful bad boring concentrate depressed distracted down exhausted fine good guess happy hate hmm honestly hopeless idk instagram
+kinda lol love maybe mood nervous ok okay phone pls reels sad scared scrolling sleepy sorry stress sucks terrible thanks ugh unmotivated upset worried
+worse yeah youtube`.split(/\s+/));
+
+// True when the goal contains at least one word that could be a subject or topic.
+// Anything not on the generic list counts, so an unknown word is treated as a
+// subject and passed to the model as the student wrote it.
+export function namesSubject(goal) {
+  const words = cleanGoal(goal).toLowerCase().match(/[\p{L}\p{N}+#]+/gu) || [];
+  return words.some((w) => !GENERIC_WORDS.has(w));
+}
+
 export function buildMessages(task, input = {}) {
   if (!TASKS.includes(task)) throw new Error(`unknown task: ${task}`);
   if (!cleanGoal(input.goal)) throw new Error('goal is required');
+  const neutral = task === 'nextAction' && !namesSubject(input.goal);
   return [
-    { role: 'system', content: SYSTEM[task] },
-    ...SHOTS[task].flatMap(([u, a]) => [{ role: 'user', content: u }, { role: 'assistant', content: a }]),
+    { role: 'system', content: neutral ? FIRST_STEP_NO_SUBJECT : SYSTEM[task] },
+    ...(neutral ? SHOTS.nextActionNoSubject : SHOTS[task]).flatMap(([u, a]) => [{ role: 'user', content: u }, { role: 'assistant', content: a }]),
     { role: 'user', content: userTurn(task, input) },
   ];
 }
