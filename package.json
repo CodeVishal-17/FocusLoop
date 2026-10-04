@@ -1,0 +1,13 @@
+{
+  "name": "focusloop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Start small, focus, recover. A study companion built on Gemma.",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node --test test/"
+  }
+}

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: focusloop
+    runtime: node
+    plan: free
+    buildCommand: "true"
+    startCommand: node server/server.js
+    healthCheckPath: /api/config
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: AI_PROVIDER
+        value: google
+      - key: GOOGLE_MODEL
+        value: gemma-4-26b-a4b-it
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: TRUST_PROXY
+        value: "1"

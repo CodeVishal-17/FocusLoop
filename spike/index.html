@@ -1,0 +1,96 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>FocusLoop spike: browser Gemma</title>
+<body style="font-family: monospace; white-space: pre-wrap; padding: 16px">
+<div id="log">starting...</div>
+<script type="module">
+// THROWAWAY SPIKE. Usage: /?model=onnx-community/gemma-3-1b-it-ONNX&dtype=q4f16&device=webgpu
+const q = new URLSearchParams(location.search);
+const MODEL = q.get('model') || 'onnx-community/gemma-3-1b-it-ONNX';
+const DTYPE = q.get('dtype') || 'q4f16';
+const DEVICE = q.get('device') || 'webgpu';
+const R = window.__spike = { model: MODEL, dtype: DTYPE, device: DEVICE, status: 'starting', ua: navigator.userAgent, runs: [] };
+const logEl = document.getElementById('log');
+const log = (s) => { logEl.textContent += '\n' + s; };
+
+const SYSTEM = `You turn a student's study goal into the first physical action with their study material. The action must start with a verb like Open, Write, Read, Solve or Find, must name the student's subject, and must take under 5 minutes. Never give advice about breathing, feelings or motivation. Reply with JSON only: {"action": "<one sentence, max 20 words>", "minutes": <integer 1-5>}`;
+const SHOTS = [
+  ['I need to study DBMS', '{"action": "Open your DBMS notes and read only the first heading and its first paragraph.", "minutes": 3}'],
+  ['physics exam tomorrow, havent started', '{"action": "Write the names of the exam chapters on one sheet of paper.", "minutes": 2}'],
+  ['i dont feel like doing anything', '{"action": "Put your phone in another room, then open the book you need to any page.", "minutes": 2}'],
+];
+const messages = (goal) => [
+  { role: 'system', content: SYSTEM },
+  ...SHOTS.flatMap(([u, a]) => [{ role: 'user', content: 'Goal: ' + u }, { role: 'assistant', content: a }]),
+  { role: 'user', content: 'Goal: ' + goal },
+];
+
+const GOALS = [
+  'I need to study DBMS',
+  "I don't feel like studying",
+  'maths. integration. so much to do I dont know where to begin',
+  'asdfgh lol',
+  'I have operating systems exam in 2 days and also compiler design assignment and I keep watching reels and I feel terrible about it and I have not opened the book even once this semester',
+  'organic chemistry reactions',
+];
+
+function parse(text) {
+  const m = text.match(/\{[\s\S]*?\}/);
+  if (!m) return null;
+  try {
+    const o = JSON.parse(m[0]);
+    if (typeof o.action === 'string' && o.action.trim() && Number.isFinite(Number(o.minutes))) return o;
+  } catch {}
+  return null;
+}
+
+try {
+  // Q2: WebGPU
+  R.hasGpuApi = !!navigator.gpu;
+  if (navigator.gpu) {
+    const adapter = await navigator.gpu.requestAdapter();
+    R.adapter = adapter ? {
+      info: adapter.info ? { vendor: adapter.info.vendor, architecture: adapter.info.architecture, device: adapter.info.device, description: adapter.info.description } : null,
+      f16: adapter.features.has('shader-f16'),
+      maxBufferSize: adapter.limits.maxBufferSize,
+      fallback: adapter.isFallbackAdapter ?? null,
+    } : null;
+  }
+  R.deviceMemory = navigator.deviceMemory; R.cores = navigator.hardwareConcurrency;
+  log('webgpu: ' + JSON.stringify(R.adapter));
+  if (DEVICE === 'webgpu' && !R.adapter) throw new Error('NO_WEBGPU');
+
+  const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0');
+  if (q.get('local') !== '0') { env.allowLocalModels = true; env.allowRemoteModels = false; env.localModelPath = '/models/'; }
+  R.status = 'loading';
+  const files = {};
+  const t0 = performance.now();
+  const gen = await pipeline('text-generation', MODEL, {
+    dtype: DTYPE, device: DEVICE,
+    progress_callback: (p) => {
+      if (p.status === 'progress') { files[p.file] = [p.loaded, p.total]; R.progress = files; }
+      if (p.status === 'done') log('done ' + p.file);
+    },
+  });
+  R.loadMs = Math.round(performance.now() - t0);
+  R.bytes = Object.values(files).reduce((a, [, t]) => a + (t || 0), 0);
+  log(`loaded in ${R.loadMs} ms, ${(R.bytes / 1e6).toFixed(0)} MB`);
+  R.status = 'running';
+
+  for (const goal of GOALS) {
+    const t = performance.now();
+    const out = await gen(messages(goal), { max_new_tokens: 64, do_sample: false });
+    const text = out[0].generated_text.at(-1).content;
+    const ms = Math.round(performance.now() - t);
+    const parsed = parse(text);
+    R.runs.push({ goal, ms, text, ok: !!parsed });
+    log(`[${ms} ms] ${parsed ? 'OK ' : 'BAD'} ${goal.slice(0, 40)} -> ${text}`);
+  }
+  R.status = 'done';
+  log('DONE');
+} catch (e) {
+  R.status = 'error'; R.error = String(e && e.message || e);
+  log('ERROR ' + R.error);
+}
+</script>
+</body>
