@@ -301,14 +301,13 @@ $('private-toggle').onclick = () => {
   render();
 };
 
-// The model is about 760 MB. If the browser gives this site less room than
-// that, it cannot be kept and has to be downloaded again on the next visit.
+// The model is about 760 MB. Some browsers fail to store a file that size
+// (seen with a 1.2 GB site quota), and then it downloads again on the next visit.
 async function checkStorageRoom() {
   try {
     await navigator.storage.persist?.();
-    const { quota = 0, usage = 0 } = await navigator.storage.estimate();
     const kept = await caches.open('transformers-cache').then((c) => c.keys()).then((keys) => keys.some((k) => k.url.endsWith('.onnx_data')));
-    storageNote = !kept && quota - usage < 900e6 ? ' This browser does not have room to keep the model, so it will download again next time you open FocusLoop.' : '';
+    storageNote = kept ? '' : ' This browser did not keep the model, so it will download again next time you open FocusLoop.';
   } catch { storageNote = ''; }
   renderMode();
 }

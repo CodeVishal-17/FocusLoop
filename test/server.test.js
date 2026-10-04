@@ -111,8 +111,23 @@ test('google adapter builds a Gemma request and reads the reply', async () => {
     const msgs = [{ role: 'system', content: 'S' }, { role: 'user', content: 'u' }];
     globalThis.fetch = async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'thinking...', thought: true }, { text: '{"action": "y"}' }] } }] }));
     assert.equal(await a.generate({ messages: msgs }), '{"action": "y"}', 'thought parts are dropped');
-    globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: 'model is not found' } }), { status: 404 });
+    let calls = 0;
+    globalThis.fetch = async () => { calls++; return new Response(JSON.stringify({ error: { message: 'model is not found' } }), { status: 404 }); };
     await assert.rejects(a.generate({ messages: msgs }), /google 404: model is not found/);
+    assert.equal(calls, 1, 'a 404 is not retried');
+    const quick = createGoogleAdapter({ apiKey: 'k', model: 'gemma-test-it', retryDelayMs: 1 });
+    calls = 0;
+    globalThis.fetch = async () => (++calls < 3 ? new Response('{"error":{"message":"Internal error encountered."}}', { status: 500 }) : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] })));
+    assert.equal(await quick.generate({ messages: msgs }), 'ok', 'transient 500s are retried');
+    assert.equal(calls, 3);
+    calls = 0;
+    globalThis.fetch = async () => { calls++; return new Response('{"error":{"message":"Internal error encountered."}}', { status: 500 }); };
+    await assert.rejects(quick.generate({ messages: msgs }), /google 500/);
+    assert.equal(calls, 4, 'gives up after 3 retries');
+    calls = 0;
+    globalThis.fetch = async () => { calls++; return new Response('{"error":{"message":"quota"}}', { status: 429 }); };
+    await assert.rejects(quick.generate({ messages: msgs }), /google 429/);
+    assert.equal(calls, 1, 'a quota error is not retried');
   } finally { globalThis.fetch = realFetch; }
 });
 

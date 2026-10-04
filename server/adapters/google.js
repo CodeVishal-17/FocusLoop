@@ -4,7 +4,7 @@
 // is turned down with thinkingConfig.thinkingLevel = "minimal".
 // The model id is configuration, not an assumption: set GOOGLE_MODEL to a Gemma
 // id listed on that page.
-export function createGoogleAdapter({ apiKey, model, base = 'https://generativelanguage.googleapis.com/v1beta' } = {}) {
+export function createGoogleAdapter({ apiKey, model, base = 'https://generativelanguage.googleapis.com/v1beta', retries = 3, retryDelayMs = 250 } = {}) {
   if (!apiKey) throw new Error('GOOGLE_API_KEY is required for AI_PROVIDER=google');
   if (!model || !/^gemma-/.test(model)) throw new Error('GOOGLE_MODEL must be a Gemma model id (starts with "gemma-")');
   return {
@@ -13,16 +13,24 @@ export function createGoogleAdapter({ apiKey, model, base = 'https://generativel
     dataNote: "Your text is sent to the FocusLoop server and on to Google's hosted Gemma. Google may use it to improve its products, so don't type anything private.",
     async generate({ messages, temperature, signal }) {
       const [system, ...turns] = messages;
-      const res = await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system.content }] },
-          contents: turns.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-          generationConfig: { temperature, maxOutputTokens: 256, thinkingConfig: { thinkingLevel: 'minimal' } },
-        }),
-        signal,
+      const body = JSON.stringify({
+        systemInstruction: { parts: [{ text: system.content }] },
+        contents: turns.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+        generationConfig: { temperature, maxOutputTokens: 256, thinkingConfig: { thinkingLevel: 'minimal' } },
       });
+      // Measured on 2026-10-04: about one call in four fails with a transient
+      // "500 Internal error" and succeeds when repeated, so retry those.
+      let res;
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, retryDelayMs * attempt));
+        res = await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body,
+          signal,
+        });
+        if (res.status !== 500 && res.status !== 503) break;
+      }
       if (!res.ok) {
         // Google's error message says what is wrong (bad model id, quota) and does not contain the user's text.
         const detail = await res.json().then((d) => d?.error?.message, () => null);
