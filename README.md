@@ -62,4 +62,4 @@ scripts/       eval-prompts.js: runs every prompt over a fixed set of goals agai
 
 ## Licences
 
-App code: MIT. Gemma is provided under and subject to the Gemma Terms of Use found at https://ai.google.dev/gemma/terms. See [NOTICE](NOTICE).
+App code: MIT, see [LICENSE](LICENSE). Gemma is provided under and subject to the Gemma Terms of Use found at https://ai.google.dev/gemma/terms. See [NOTICE](NOTICE).

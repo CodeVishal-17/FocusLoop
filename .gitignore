@@ -7,7 +7,6 @@
 
 # model weights and caches (Private Mode downloads these in the browser; never commit them)
 models/
-spike/models/
 *.onnx
 *.onnx_data
 *.task

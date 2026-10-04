@@ -2,7 +2,7 @@
 
 Short record of what was actually run, what broke, and what was fixed.
 
-## 2026-10-04: browser Gemma feasibility spike (throwaway code in `spike/`)
+## 2026-10-04: browser Gemma feasibility spike (throwaway test page, since removed from the repository)
 
 Machine: Ryzen 5 5500U, integrated Radeon, 8 GB RAM, Windows 11, Chromium 152. Library: transformers.js 4.3.0.
 

@@ -8,7 +8,6 @@
 - `docs/evidence/eval-gemma3-1b.txt`: the same 17 cases against local Gemma 3 1B.
 - `docs/design/proposal.html`: the design proposal the UI was built from.
 - `docs/superpowers/specs/2026-10-04-focusloop-design.md`: architecture and the spike numbers behind it.
-- `spike/index.html`: the throwaway page used to measure in-browser Gemma.
 - `docs/evidence/screens/private/`: Private Mode downloading, Private Mode active, and a step labelled "Gemma on this device", from Chrome with WebGPU. The run recorded 0 requests to `/api/ai`.
 - `docs/evidence/screens/failures/`: model down, junk output and slow model in the redesigned UI, each showing the "Built-in step" label.
 
