@@ -2,7 +2,8 @@
 // core/; Gemma is only asked for the words of the next step.
 import { cleanGoal } from './core/validate.js';
 import { createLog } from './core/events.js';
-import { summary } from './core/stats.js';
+import { summary, returnMessage, sessionRings } from './core/stats.js';
+import { ringPoint, elapsedFraction } from './core/ring.js';
 import { fallbackFor, SMALLEST_STEP } from './core/fallback.js';
 import * as S from './core/session.js';
 import { createAI } from './ai/index.js';
@@ -22,6 +23,7 @@ const store = S.createSessionStore(storage);
 let session = store.load();
 let busy = null;            // text shown while a model call is running
 let awayExpired = false;    // the timer ran out while the tab was closed
+let view = null;            // 'progress' while the Progress screen is open
 let duration = S.DURATIONS.includes(Number(storage.getItem(PREF_DURATION))) ? Number(storage.getItem(PREF_DURATION)) : 15;
 let wantsPrivate = storage.getItem(PREF_PRIVATE) === '1';
 let support = { ok: false, reason: 'Checking this device…' };
@@ -40,24 +42,51 @@ function safeStorage() {
 
 function save() { session ? store.save(session) : store.clear(); }
 
-const SOURCE_LABEL = {
-  fast: '⚡ Fast Mode — hosted Gemma',
-  private: '🔒 Private Mode — Gemma running on this device',
-  fallback: "Built-in step — Gemma didn't give a usable answer, so this one is from FocusLoop itself",
-  smallest: 'Built-in step — the smallest one there is',
-};
+// Quiet provider names for the step itself; the full explanation lives behind
+// the mode control in the header. A built-in step is never presented as Gemma's.
+const SOURCE_LABEL = { fast: 'Hosted Gemma', private: 'Gemma on this device', fallback: 'Built-in step', smallest: 'Built-in step' };
+const SVG = 'http://www.w3.org/2000/svg';
+const RING_R = 98, RING_C = 2 * Math.PI * RING_R;
+
+function svg(name, attrs) {
+  const el = document.createElementNS(SVG, name);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+// One drift on a ring: a small loop that leaves the ring and comes back to it,
+// with a dot once the person has returned. Never a gap, never a warning colour.
+function driftMarks(fraction, returned, radius, cx, cy, loopR, dotR) {
+  const on = ringPoint(fraction, radius, cx, cy);
+  const marks = [svg('circle', { class: 'drift-loop', cx: on.x, cy: on.y, r: loopR })];
+  if (returned) {
+    const inner = ringPoint(fraction, radius - loopR + 1, cx, cy);
+    marks.push(svg('circle', { class: 'drift-dot', cx: inner.x, cy: inner.y, r: dotR }));
+  }
+  return marks;
+}
+
+const days = (n) => `${n} day${n === 1 ? '' : 's'}`;
+const shortGoal = (g) => (g.length > 60 ? `${g.slice(0, 57).trimEnd()}…` : g);
 
 // ---------- rendering ----------
 function render() {
   const phase = session?.phase || 'start';
-  $('screen-start').hidden = phase !== 'start';
-  $('screen-ready').hidden = phase !== 'ready';
-  $('screen-focus').hidden = phase !== 'focusing';
-  $('screen-done').hidden = phase !== 'done';
+  const screen = view === 'progress' && phase !== 'focusing' ? 'progress' : phase === 'focusing' ? 'focus' : phase;
+  for (const name of ['start', 'ready', 'focus', 'done', 'progress']) $(`screen-${name}`).hidden = name !== screen;
+  document.body.dataset.screen = screen;
+  const recovering = screen === 'focus' && session.awaitingReturn && !awayExpired;
+  document.body.classList.toggle('recovering', recovering);
 
-  if (phase === 'ready') {
+  const s = summary(log.all());
+
+  if (screen === 'start') $('home-streak').textContent = s.streak ? `${days(s.streak)} streak ·` : '';
+
+  if (screen === 'ready') {
     const a = S.currentAction(session);
+    $('ready-goal').textContent = session.goal;
     $('ready-action').textContent = a.action;
+    $('ready-minutes').textContent = `~${a.minutes} min`;
     $('ready-source').textContent = SOURCE_LABEL[a.source];
     $('duration-options').replaceChildren(...S.DURATIONS.map((m) => {
       const b = document.createElement('button');
@@ -67,40 +96,63 @@ function render() {
     }));
   }
 
-  if (phase === 'focusing') {
-    const expired = awayExpired;
+  if (screen === 'focus') {
     const a = S.currentAction(session);
-    $('focus-goal').textContent = session.goal;
     $('focus-action').textContent = a.action;
     $('focus-source').textContent = SOURCE_LABEL[a.source];
-    $('focus-main').hidden = expired || session.awaitingReturn;
-    $('recovery').hidden = expired || !session.awaitingReturn;
-    $('expired').hidden = !expired;
-    if (session.awaitingReturn) {
+    $('focus-main').hidden = awayExpired || session.awaitingReturn;
+    $('recovery').hidden = !recovering;
+    $('expired').hidden = !awayExpired;
+    $('end-row').hidden = awayExpired;
+    if (recovering) {
       const r = session.pendingRecovery;
-      $('recovery-action').textContent = r ? r.action : 'One moment…';
+      $('recovery-action').textContent = r ? r.action : 'Finding a small step back in…';
+      $('recovery-minutes').textContent = r ? `~${r.minutes} min` : '';
       $('recovery-source').textContent = r ? SOURCE_LABEL[r.source] : '';
       $('back').hidden = !r;
     }
+    $('ring-drifts').replaceChildren(...(session.drifts || []).flatMap((d) => driftMarks(d.f, d.returned, RING_R, 108, 108, 9, 4)));
     renderClock();
   }
 
-  if (phase === 'done') {
-    const goal = session.goal.length > 60 ? `${session.goal.slice(0, 57).trimEnd()}…` : session.goal;
-    const parts = [`${session.durationMin} minutes on “${goal}”.`];
-    if (session.distracted) parts.push(`Drifted ${session.distracted} time${session.distracted === 1 ? '' : 's'}, came back ${session.returned}.`);
-    $('done-facts').textContent = parts.join(' ');
+  if (screen === 'done') {
+    $('done-title').textContent = `${session.durationMin} minutes, done.`;
+    $('done-goal').textContent = shortGoal(session.goal);
     $('done-note').textContent = session.note?.note || '';
-    $('done-source').textContent = !session.note ? '' : session.note.source === 'fallback' ? "Written by FocusLoop itself — Gemma didn't give a usable answer" : SOURCE_LABEL[session.note.source];
+    $('done-source').textContent = !session.note ? '' : session.note.source === 'fallback' ? 'Written by FocusLoop' : SOURCE_LABEL[session.note.source];
+    $('done-streak').textContent = days(s.streak);
+    $('done-returns').textContent = session.distracted ? `${session.returned} of ${session.distracted}` : 'none';
+    $('done-returns-label').textContent = session.distracted ? 'returns' : 'distractions';
+    $('done-consistency').textContent = s.consistency.score === null ? '—' : `${s.consistency.score}%`;
+    $('done-ring').replaceChildren(
+      svg('circle', { class: 'ring-arc', cx: 46, cy: 46, r: 38 }),
+      ...(session.drifts || []).filter((d) => d.returned).map((d) => { const p = ringPoint(d.f, 38, 46, 46); return svg('circle', { class: 'drift-dot', cx: p.x, cy: p.y, r: 4 }); }),
+      svg('path', { class: 'tick', d: 'M33 47l9 9 18-20' }),
+    );
   }
 
-  $('busy').hidden = !busy;
+  if (screen === 'progress') {
+    const events = log.all();
+    $('progress-message').textContent = returnMessage(events);
+    const rings = sessionRings(events, 6);
+    $('progress-rings').setAttribute('aria-label', rings.length ? `Your last ${rings.length} session${rings.length === 1 ? '' : 's'}: ${rings.filter((r) => r.completed).length} finished, ${rings.reduce((n, r) => n + r.returns.length, 0)} returns` : 'No sessions yet');
+    $('progress-rings').replaceChildren(...rings.map((r) => {
+      const el = svg('svg', { viewBox: '0 0 40 40' });
+      el.append(svg('circle', { class: r.completed ? 'done' : 'open', cx: 20, cy: 20, r: 15 }), ...r.returns.map((f) => { const p = ringPoint(f, 15, 20, 20); return svg('circle', { class: 'drift-dot', cx: p.x, cy: p.y, r: 3.2 }); }));
+      return el;
+    }));
+    $('progress-streak').textContent = s.streak ? `${s.streak} day` : '—';
+    $('progress-consistency').textContent = s.consistency.score === null ? '—' : `${s.consistency.score}%`;
+    $('progress-recovered').textContent = s.recovery.distracted ? `${s.recovery.returned}/${s.recovery.distracted}` : '—';
+  }
+
+  // The recovery card carries its own "finding a step" line.
+  $('busy').hidden = !busy || recovering;
   $('busy').textContent = busy || '';
   for (const b of document.querySelectorAll('main button')) b.disabled = !!busy;
   $('goal').disabled = !!busy;
 
-  if (phase !== 'focusing') document.title = 'FocusLoop';
-  renderStats();
+  if (screen !== 'focus') document.title = 'FocusLoop';
   renderMode();
 }
 
@@ -108,23 +160,11 @@ function renderClock() {
   if (session?.phase !== 'focusing') { document.title = 'FocusLoop'; return; }
   const text = S.formatClock(S.remainingMs(session));
   $('clock').textContent = text;
+  $('recovery-clock').textContent = text;
+  const arc = $('ring-arc');
+  arc.style.strokeDasharray = RING_C;
+  arc.style.strokeDashoffset = RING_C * (1 - elapsedFraction(session.startedAt, session.endsAt));
   document.title = `${text} · FocusLoop`;
-}
-
-function renderStats() {
-  const s = summary(log.all());
-  const cells = [
-    [s.streak ? `${s.streak} day${s.streak === 1 ? '' : 's'}` : '—', 'Streak'],
-    [String(s.sessions), `Sessions finished${s.today ? ` (${s.today} today)` : ''}`],
-    [s.recovery.distracted ? `${s.recovery.returned} of ${s.recovery.distracted}` : '—', 'Times you came back after drifting (7 days)'],
-    [s.consistency.started ? `${s.consistency.completed} of ${s.consistency.started}` : '—', 'Sessions finished once started'],
-  ];
-  $('stats').replaceChildren(...cells.map(([value, label]) => {
-    const d = document.createElement('div'); d.className = 'stat';
-    const b = document.createElement('b'); b.textContent = value;
-    const sp = document.createElement('span'); sp.textContent = label;
-    d.append(b, sp); return d;
-  }));
 }
 
 function renderMode() {
@@ -133,7 +173,7 @@ function renderMode() {
   const chip = $('mode-chip');
   chip.classList.toggle('private', active === 'private');
   const loading = wantsPrivate && (st.state === 'downloading' || st.state === 'warming');
-  chip.textContent = active === 'private' ? '🔒 Private Mode' : loading ? '⚡ Fast Mode · 🔒 getting ready…' : '⚡ Fast Mode';
+  chip.textContent = active === 'private' ? 'Private Mode' : loading ? 'Fast Mode · Private getting ready…' : 'Fast Mode';
 
   if (config.dataNote) $('fast-note').textContent = `${config.dataNote} Fast Mode is not private and needs an internet connection.`;
 
@@ -168,7 +208,7 @@ async function ask(label, call, apply) {
   save(); render();
 }
 
-const thinking = () => (ai.activeProvider() === 'private' ? 'Gemma is thinking on this device…' : 'Gemma is thinking…');
+const thinking = () => (ai.activeProvider() === 'private' ? 'Gemma is thinking on this device…' : 'Finding a small step…');
 
 // ---------- actions ----------
 $('goal-form').addEventListener('submit', async (e) => {
@@ -220,7 +260,8 @@ $('change-goal').onclick = () => { if (busy) return; $('goal').value = session?.
 
 $('distracted').onclick = async () => {
   if (!session || busy || session.awaitingReturn) return;
-  session = { ...S.markDistracted(session), pendingRecovery: null };
+  const drift = { f: elapsedFraction(session.startedAt, session.endsAt), returned: false };
+  session = { ...S.markDistracted(session), pendingRecovery: null, drifts: [...(session.drifts || []), drift].slice(-24) };
   log.append('distracted', { sessionId: session.id });
   save();
   const doing = S.currentAction(session).action;
@@ -234,7 +275,8 @@ $('distracted').onclick = async () => {
 $('back').onclick = () => {
   if (!session?.awaitingReturn || !session.pendingRecovery) return;
   const a = session.pendingRecovery;
-  session = { ...S.withAction(S.markReturned(session), a), pendingRecovery: null };
+  const drifts = (session.drifts || []).map((d, i, all) => (i === all.length - 1 ? { ...d, returned: true } : d));
+  session = { ...S.withAction(S.markReturned(session), a), pendingRecovery: null, drifts };
   log.append('returned', { sessionId: session.id });
   save(); render();
 };
@@ -262,10 +304,10 @@ function abandon() {
 $('expired-count').onclick = complete;
 $('expired-discard').onclick = abandon;
 
-confirmTwice($('end-early'), 'End session early', 'Tap again to end this session', abandon);
+confirmTwice($('end-early'), 'End session', 'Tap again to end this session', abandon);
 confirmTwice($('wipe'), 'Delete my history', 'Tap again to delete everything', () => {
   log.clear(); store.clear(); storage.removeItem(LAST_GOAL); storage.removeItem(FEEDBACK);
-  session = null; $('goal').value = ''; render();
+  session = null; view = null; $('goal').value = ''; render();
 });
 
 function confirmTwice(button, label, confirmLabel, action) {
@@ -279,6 +321,9 @@ function confirmTwice(button, label, confirmLabel, action) {
 }
 
 $('again').onclick = () => { session = null; save(); $('goal').value = storage.getItem(LAST_GOAL) || ''; render(); $('goal').focus(); };
+
+$('open-progress').onclick = $('done-progress').onclick = () => { view = 'progress'; render(); };
+$('progress-back').onclick = () => { view = null; render(); };
 
 // ---------- timer ----------
 setInterval(() => {

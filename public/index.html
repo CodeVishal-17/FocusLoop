@@ -2,129 +2,172 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>FocusLoop</title>
-  <meta name="description" content="Start small, focus, recover. A study companion built on Gemma.">
+  <meta name="description" content="Start small, focus, come back. A study companion built on Gemma.">
+  <meta name="theme-color" content="#F6F3EC" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111412" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <header class="top">
-    <h1>FocusLoop</h1>
-    <button id="mode-chip" class="chip" aria-expanded="false" aria-controls="mode-panel">⚡ Fast Mode</button>
-  </header>
+<body data-screen="start">
+  <div class="app">
+    <header class="top">
+      <span class="brand">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="10" r="2.2" class="mark-dot"/></svg>
+        FocusLoop
+      </span>
+      <button id="mode-chip" class="mode" aria-expanded="false" aria-controls="mode-panel">Fast Mode</button>
+    </header>
 
-  <section id="mode-panel" class="card panel" hidden>
-    <h2>Who is answering?</h2>
-    <div class="mode-row">
-      <strong>⚡ Fast Mode — hosted Gemma</strong>
-      <p id="fast-note">Your text is sent to the FocusLoop server to get an answer. Fast Mode is not private and needs an internet connection.</p>
-    </div>
-    <div class="mode-row">
-      <strong>🔒 Private Mode — Gemma running on this device</strong>
-      <p>Downloads the Gemma 3 1B model once (about 760 MB). After the download, the model runs locally in this browser and what you type is not sent anywhere. Until it is ready, Fast Mode keeps answering.</p>
-      <p id="private-status" class="status" role="status"></p>
-      <div id="private-progress" class="bar" hidden><div id="private-bar"></div></div>
-      <button id="private-toggle" class="btn secondary">Turn on Private Mode</button>
-    </div>
-  </section>
-
-  <main>
-    <section id="screen-start" class="card" hidden>
-      <h2>What do you need to study?</h2>
-      <p class="hint">A few words is enough. You'll get one small step, not a plan.</p>
-      <form id="goal-form" novalidate>
-        <textarea id="goal" rows="2" maxlength="300" placeholder="e.g. I need to study DBMS" aria-describedby="goal-error"></textarea>
-        <p id="goal-error" class="error" role="alert" hidden></p>
-        <button id="goal-submit" class="btn primary" type="submit">Give me one small step</button>
-      </form>
+    <section id="mode-panel" class="sheet" hidden>
+      <h2>Who is answering?</h2>
+      <div class="mode-row">
+        <strong>⚡ Fast Mode — hosted Gemma</strong>
+        <p id="fast-note">Your text is sent to the FocusLoop server to get an answer. Fast Mode is not private and needs an internet connection.</p>
+      </div>
+      <div class="mode-row">
+        <strong>🔒 Private Mode — Gemma running on this device</strong>
+        <p>Downloads the Gemma 3 1B model once (about 760 MB). After the download, the model runs locally in this browser and what you type is not sent anywhere. Until it is ready, Fast Mode keeps answering.</p>
+        <p id="private-status" class="status" role="status"></p>
+        <div id="private-progress" class="bar" hidden><div id="private-bar"></div></div>
+        <button id="private-toggle" class="btn outline">Turn on Private Mode</button>
+      </div>
+      <p class="legal">Gemma is provided under and subject to the <a href="https://ai.google.dev/gemma/terms" target="_blank" rel="noopener">Gemma Terms of Use</a> and <a href="https://ai.google.dev/gemma/prohibited_use_policy" target="_blank" rel="noopener">Prohibited Use Policy</a>.</p>
     </section>
 
-    <section id="screen-ready" class="card" hidden>
-      <p class="label">Your first step</p>
-      <p id="ready-action" class="action"></p>
-      <p id="ready-source" class="source"></p>
-      <fieldset class="durations">
-        <legend>Then stay with it for</legend>
-        <div id="duration-options" class="segmented"></div>
-      </fieldset>
-      <button id="start-focus" class="btn primary">Start focus</button>
-      <div class="row">
-        <button id="ready-smaller" class="btn secondary">Too big — make it smaller</button>
-        <button id="change-goal" class="btn link">Change goal</button>
-      </div>
-    </section>
-
-    <section id="screen-focus" class="card" hidden>
-      <p id="clock" class="clock" aria-live="off">00:00</p>
-      <p id="focus-goal" class="hint"></p>
-
-      <div id="focus-main">
-        <p class="label">Do this now</p>
-        <p id="focus-action" class="action"></p>
-        <p id="focus-source" class="source"></p>
-        <div class="row">
-          <button id="stuck" class="btn secondary">I'm stuck</button>
-          <button id="distracted" class="btn secondary">I got distracted</button>
-        </div>
-      </div>
-
-      <div id="recovery" class="recovery" hidden>
-        <p class="label">That's okay. Coming back is the win.</p>
-        <p id="recovery-action" class="action"></p>
-        <p id="recovery-source" class="source"></p>
-        <button id="back" class="btn primary">I'm back</button>
-      </div>
-
-      <div id="expired" class="recovery" hidden>
-        <p class="label">Your timer ended while FocusLoop was closed.</p>
-        <p class="hint">Did you stay with it?</p>
-        <div class="row">
-          <button id="expired-count" class="btn primary">Yes — count it</button>
-          <button id="expired-discard" class="btn secondary">No — discard it</button>
-        </div>
-      </div>
-
-      <button id="end-early" class="btn link">End session early</button>
-    </section>
-
-    <section id="screen-done" class="card" hidden>
-      <h2>Session complete</h2>
-      <p id="done-facts" class="hint"></p>
-      <p id="done-note" class="action"></p>
-      <p id="done-source" class="source"></p>
-      <button id="again" class="btn primary">Study again</button>
-
-      <details id="feedback">
-        <summary>Tell us how it went</summary>
-        <form id="feedback-form">
-          <label>Did this help you start studying?
-            <select id="fb-helped"><option value="">Choose…</option><option>Yes</option><option>A little</option><option>No</option></select>
-          </label>
-          <label>Was the first step small enough to actually do?
-            <select id="fb-step"><option value="">Choose…</option><option>Yes</option><option>Too big</option><option>Too vague</option><option>Didn't fit my subject</option></select>
-          </label>
-          <label>What was confusing or annoying?
-            <textarea id="fb-confusing" rows="2" maxlength="500"></textarea>
-          </label>
-          <label>Would you open it again tomorrow?
-            <select id="fb-again"><option value="">Choose…</option><option>Yes</option><option>Maybe</option><option>No</option></select>
-          </label>
-          <button class="btn secondary" type="submit">Copy my feedback</button>
-          <p id="fb-status" class="status" role="status"></p>
-          <textarea id="fb-output" rows="8" readonly hidden></textarea>
+    <main>
+      <section id="screen-start" class="screen" hidden>
+        <h1 class="hero"><label for="goal">What do you want to focus on?</label></h1>
+        <form id="goal-form" class="fill" novalidate>
+          <textarea id="goal" class="field" rows="1" maxlength="300" placeholder="I need to study DBMS" aria-describedby="goal-hint goal-error"></textarea>
+          <p id="goal-hint" class="hint">Start small. We'll take it from there.</p>
+          <p id="goal-error" class="error" role="alert" hidden></p>
+          <div class="grow"></div>
+          <button id="goal-submit" class="btn primary" type="submit">Find my first step</button>
         </form>
-      </details>
-    </section>
+        <p class="quiet"><span id="home-streak"></span><button id="open-progress" class="link">Progress</button></p>
+      </section>
 
-    <p id="busy" class="busy" role="status" hidden></p>
+      <section id="screen-ready" class="screen" hidden>
+        <p id="ready-goal" class="echo"></p>
+        <article class="card">
+          <p class="eyebrow">Your first step</p>
+          <p id="ready-action" class="step"></p>
+          <p class="meta"><span id="ready-minutes"></span><span id="ready-source"></span></p>
+        </article>
+        <div class="grow"></div>
+        <fieldset class="durations">
+          <legend>Stay with it for</legend>
+          <div id="duration-options" class="segmented"></div>
+        </fieldset>
+        <button id="start-focus" class="btn primary">Start focus</button>
+        <p class="quiet"><button id="ready-smaller" class="link">Make it smaller</button><button id="change-goal" class="link">Change goal</button></p>
+      </section>
 
-    <section id="stats" class="stats" aria-label="Your progress"></section>
-  </main>
+      <section id="screen-focus" class="screen" hidden>
+        <div id="focus-main" class="fill">
+          <p class="eyebrow center accent">Focusing</p>
+          <div class="ring-wrap">
+            <svg id="ring" class="ring" viewBox="0 0 216 216" aria-hidden="true">
+              <circle class="ring-track" cx="108" cy="108" r="98"/>
+              <circle id="ring-arc" class="ring-arc" cx="108" cy="108" r="98" transform="rotate(-90 108 108)"/>
+              <g id="ring-drifts"></g>
+            </svg>
+            <p id="clock" class="timer" role="timer" aria-live="off">00:00</p>
+          </div>
+          <p id="focus-action" class="step center"></p>
+          <p class="meta center"><span id="focus-source"></span></p>
+          <div class="grow"></div>
+          <div class="pair">
+            <button id="stuck" class="btn outline">I'm stuck</button>
+            <button id="distracted" class="btn outline">I got distracted</button>
+          </div>
+        </div>
 
-  <footer>
-    <p>Your goals and history stay in this browser. <button id="wipe" class="btn link">Delete my history</button></p>
-    <p>Gemma is provided under and subject to the <a href="https://ai.google.dev/gemma/terms" target="_blank" rel="noopener">Gemma Terms of Use</a> and <a href="https://ai.google.dev/gemma/prohibited_use_policy" target="_blank" rel="noopener">Prohibited Use Policy</a>.</p>
-  </footer>
+        <div id="recovery" class="fill" hidden>
+          <p class="timeline center"><span id="recovery-clock"></span> left</p>
+          <div class="back-words">
+            <p class="big">You're back.</p>
+            <p class="sub">That's what matters.</p>
+          </div>
+          <article class="card">
+            <p class="eyebrow">One small step back in</p>
+            <p id="recovery-action" class="step"></p>
+            <p class="meta"><span id="recovery-minutes"></span><span id="recovery-source"></span></p>
+          </article>
+          <div class="grow"></div>
+          <button id="back" class="btn primary">I'm back →</button>
+        </div>
+
+        <div id="expired" class="fill" hidden>
+          <div class="back-words">
+            <p class="big">Your timer finished.</p>
+            <p class="sub">FocusLoop was closed at the time. Did you stay with it?</p>
+          </div>
+          <div class="grow"></div>
+          <button id="expired-count" class="btn primary">Yes, count it</button>
+          <p class="quiet"><button id="expired-discard" class="link">No, discard it</button></p>
+        </div>
+
+        <p class="quiet" id="end-row"><button id="end-early" class="link small">End session</button></p>
+      </section>
+
+      <section id="screen-done" class="screen" hidden>
+        <svg id="done-ring" class="done-ring" viewBox="0 0 92 92" aria-hidden="true"></svg>
+        <h1 id="done-title" class="big center"></h1>
+        <p id="done-goal" class="echo center"></p>
+        <blockquote id="done-note" class="quote center"></blockquote>
+        <p class="meta center"><span id="done-source"></span></p>
+        <dl class="stats">
+          <div><dt>streak</dt><dd id="done-streak"></dd></div>
+          <div><dt id="done-returns-label">returns</dt><dd id="done-returns"></dd></div>
+          <div><dt>consistency</dt><dd id="done-consistency"></dd></div>
+        </dl>
+        <div class="grow"></div>
+        <button id="again" class="btn primary">Focus again</button>
+        <p class="quiet"><button id="done-progress" class="link">Progress</button></p>
+
+        <details id="feedback">
+          <summary>Tell us how it went</summary>
+          <form id="feedback-form">
+            <label>Did this help you start studying?
+              <select id="fb-helped"><option value="">Choose…</option><option>Yes</option><option>A little</option><option>No</option></select>
+            </label>
+            <label>Was the first step small enough to actually do?
+              <select id="fb-step"><option value="">Choose…</option><option>Yes</option><option>Too big</option><option>Too vague</option><option>Didn't fit my subject</option></select>
+            </label>
+            <label>What was confusing or annoying?
+              <textarea id="fb-confusing" rows="2" maxlength="500"></textarea>
+            </label>
+            <label>Would you open it again tomorrow?
+              <select id="fb-again"><option value="">Choose…</option><option>Yes</option><option>Maybe</option><option>No</option></select>
+            </label>
+            <button class="btn outline" type="submit">Copy my feedback</button>
+            <p id="fb-status" class="status" role="status"></p>
+            <textarea id="fb-output" rows="8" readonly hidden></textarea>
+          </form>
+        </details>
+      </section>
+
+      <section id="screen-progress" class="screen" hidden>
+        <p class="quiet left"><button id="progress-back" class="link">← Back</button></p>
+        <h1 id="progress-message" class="hero small"></h1>
+        <div id="progress-rings" class="rings" role="img"></div>
+        <dl class="lines">
+          <div><dd id="progress-streak"></dd><dt>streak</dt></div>
+          <div><dd id="progress-consistency"></dd><dt>focus consistency</dt></div>
+          <div><dd id="progress-recovered"></dd><dt>distractions recovered</dt></div>
+        </dl>
+        <div class="grow"></div>
+        <p class="legal center">Your goals and history stay in this browser. <button id="wipe" class="link small">Delete my history</button></p>
+      </section>
+
+      <p id="busy" class="busy" role="status" hidden></p>
+    </main>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>

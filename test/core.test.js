@@ -153,3 +153,44 @@ test('session: stuck, distracted and returned counters', () => {
   assert.equal(S.formatClock(59001), '01:00');
   assert.equal(S.formatClock(0), '00:00');
 });
+
+// --- added with the visual redesign ---
+import { returnMessage, sessionRings } from '../public/core/stats.js';
+import { ringPoint, elapsedFraction } from '../public/core/ring.js';
+
+test('returnMessage only claims improvement when the data shows it', () => {
+  const ev = (type, daysAgo) => ({ t: NOON - daysAgo * DAY - 1, type });
+  const BETTER = "You're getting better at returning.", NEUTRAL = 'Every return counts.';
+  assert.equal(returnMessage([], NOON), NEUTRAL);
+  assert.equal(returnMessage([ev('distracted', 0), ev('returned', 0)], NOON), NEUTRAL, 'one distraction is not enough');
+  assert.equal(returnMessage([ev('distracted', 0), ev('returned', 0), ev('distracted', 1)], NOON), BETTER, '1 of 2 with no earlier week meets the 50% bar');
+  assert.equal(returnMessage([ev('distracted', 0), ev('distracted', 1), ev('distracted', 2), ev('returned', 2)], NOON), NEUTRAL, '1 of 3 is under 50%');
+  const lastWeekPerfect = [ev('distracted', 9), ev('returned', 9)];
+  assert.equal(returnMessage([...lastWeekPerfect, ev('distracted', 0), ev('returned', 0), ev('distracted', 1)], NOON), NEUTRAL, 'worse than last week');
+  assert.equal(returnMessage([...lastWeekPerfect, ev('distracted', 0), ev('returned', 0), ev('distracted', 1), ev('returned', 1)], NOON), BETTER, 'as good as last week');
+});
+
+test('sessionRings: completion and where each return happened', () => {
+  const t0 = NOON;
+  const events = [
+    { t: t0, type: 'focus_start', sessionId: 'a', minutes: 10 },
+    { t: t0 + 5 * 60000, type: 'returned', sessionId: 'a' },
+    { t: t0 + 10 * 60000, type: 'focus_end', sessionId: 'a', minutes: 10 },
+    { t: t0 + 20 * 60000, type: 'focus_start', sessionId: 'b', minutes: 15 },
+    { t: t0 + 21 * 60000, type: 'abandoned', sessionId: 'b' },
+    { t: t0 + 30 * 60000, type: 'goal_set', sessionId: 'c' },
+  ];
+  assert.deepEqual(sessionRings(events), [{ completed: true, returns: [0.5] }, { completed: false, returns: [] }]);
+  assert.equal(sessionRings(events, 1).length, 1);
+  assert.deepEqual(sessionRings([]), []);
+});
+
+test('ring geometry', () => {
+  assert.deepEqual(ringPoint(0, 10, 50, 50), { x: 50, y: 40 });
+  assert.deepEqual(ringPoint(0.25, 10, 50, 50), { x: 60, y: 50 });
+  assert.deepEqual(ringPoint(0.5, 10, 50, 50), { x: 50, y: 60 });
+  assert.equal(elapsedFraction(0, 100, 25), 0.25);
+  assert.equal(elapsedFraction(0, 100, 500), 1);
+  assert.equal(elapsedFraction(0, 100, -5), 0);
+  assert.equal(elapsedFraction(100, 100, 100), 0);
+});

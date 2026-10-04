@@ -9,3 +9,9 @@ https://ai.google.dev/gemma/prohibited_use_policy
 FocusLoop does not redistribute Gemma model files. In Private Mode the
 browser downloads them from the onnx-community/gemma-3-1b-it-ONNX repository
 on Hugging Face (or from a host configured by whoever deploys FocusLoop).
+
+Fonts bundled in public/fonts:
+- Fraunces, Copyright The Fraunces Project Authors, SIL Open Font License 1.1
+- Inter, Copyright The Inter Project Authors, SIL Open Font License 1.1
+Both were obtained from the Fontsource distribution and are served from the
+app itself; no font is loaded from a third party at runtime.

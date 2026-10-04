@@ -13,7 +13,7 @@ import { createStubAdapter } from './adapters/stub.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(ROOT, '..', 'public');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.onnx': 'application/octet-stream', '.onnx_data': 'application/octet-stream', '.webmanifest': 'application/manifest+json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.onnx': 'application/octet-stream', '.onnx_data': 'application/octet-stream', '.webmanifest': 'application/manifest+json' };
 const MAX_BODY = 4096;
 
 export function adapterFromEnv(env = process.env) {
