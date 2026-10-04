@@ -2,9 +2,10 @@
 // user as fallbacks, never as Gemma's answer.
 const STEPS = {
   nextAction: [
-    'Open the notes or book for this subject and read only the first heading.',
-    'Write the name of one topic you need to cover at the top of a blank page.',
-    'Find the first question in your material and read it once, slowly.',
+    // Generic across subjects, but each one is studying, not getting ready to.
+    'Read one definition from your current topic and write what it means in your own words.',
+    'Write three key terms from this subject from memory, then check them against your notes.',
+    'Trace one worked example from your current topic line by line, writing each step yourself.',
   ],
   unstick: [
     'Write down the exact line where you got stuck, word for word.',

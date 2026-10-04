@@ -1,0 +1,51 @@
+### BEFORE (prompt as pushed at 5de2776)
+WEAK I want to study Operating Systems  -> Open your Operating Systems textbook to the table of contents. (1 min)   [setup-only]
+WEAK I want to study Operating Systems  -> Open your Operating Systems textbook to the table of contents. (1 min)   [setup-only]
+WEAK I need to study DBMS               -> Open your DBMS textbook to the table of contents. (1 min)   [setup-only]
+WEAK I need to study DBMS               -> Open your DBMS textbook to the table of contents. (1 min)   [setup-only]
+WEAK I have a physics exam              -> Open your physics textbook to the table of contents. (1 min)   [setup-only]
+WEAK I have a physics exam              -> Open your physics textbook to the chapter covering the first topic on your exam syllabus. (2 min)   [setup-only]
+WEAK I need to study calculus           -> Open your calculus textbook to the first unsolved problem in the current chapter. (2 min)   [setup-only]
+WEAK I need to study calculus           -> Open your calculus textbook to the first unsolved example in the chapter. (2 min)   [setup-only]
+ok   I want to practice Python          -> Open your code editor and write a single print statement. (1 min)
+WEAK I want to practice Python          -> Open your code editor and type a single print statement. (1 min)   [setup-only]
+
+google gemma-4-26b-a4b-it: 1/10 pass every check
+ok   I want to study Operating Systems  -> Open the Operating Systems textbook and read the introduction. (3 min)
+ok   I want to study Operating Systems  -> Read the first paragraph of your Operating Systems textbook. (3 min)
+ok   I need to study DBMS               -> Open your DBMS notes and read the definition of a key-value pair. (3 min)
+WEAK I need to study DBMS               -> Open the DBMS course syllabus and scan the headings. (3 min)   [setup-only]
+WEAK I have a physics exam              -> Find a comfortable chair and open your physics textbook. (3 min)   [setup-only]
+WEAK I have a physics exam              -> Run a quick practice problem from the first chapter. (3 min)   [does not mention the subject]
+ok   I need to study calculus           -> Find a simple calculus problem and solve it on paper. (4 min)
+ok   I need to study calculus           -> Find a calculus concept you're struggling with and write down the first problem you want to solve. (3 min)
+WEAK I want to practice Python          -> Type the following Python code into your text editor: (1 min)   [setup-only]
+ok   I want to practice Python          -> Write down three simple Python functions to practice. (4 min)
+
+ollama gemma3:1b: 6/10 pass every check
+
+### AFTER (new nextAction prompt)
+ok   I want to study Operating Systems  -> Read the definition of a process in your notes and write one sentence explaining how it differs from a thread. (4 min)
+ok   I want to study Operating Systems  -> Read the definition of a process in your notes and write one sentence explaining how it differs from a thread. (4 min)
+ok   I need to study DBMS               -> Read the definition of a Primary Key in your notes and write one sentence explaining its purpose. (3 min)
+ok   I need to study DBMS               -> Read the definition of a Primary Key in your notes and write one sentence explaining its purpose. (3 min)
+ok   I have a physics exam              -> Trace one worked example of Newton's Second Law in your notes to understand each step. (5 min)
+ok   I have a physics exam              -> Trace one worked example of Newton's second law in your textbook to see how the formula is applied. (5 min)
+ok   I need to study calculus           -> Trace one worked example of a power rule derivative to understand each step. (5 min)
+ok   I need to study calculus           -> Trace one worked example of a power rule derivative in your textbook to understand each step. (5 min)
+ok   I want to practice Python          -> Write three lines of code that use a for loop to print numbers from one to five. (5 min)
+ok   I want to practice Python          -> Write three lines of code that use a 'for' loop to print numbers from one to five. (5 min)
+
+google gemma-4-26b-a4b-it: 10/10 pass every check
+ok   I want to study Operating Systems  -> Define the purpose of a process in your Operating System notes, then write a short explanation. (3 min)
+ok   I want to study Operating Systems  -> Recite the purpose of a process in the Operating System, then check it against your notes. (3 min)
+ok   I need to study DBMS               -> Write a short explanation of the primary function of a primary key in your DBMS notes. (3 min)
+ok   I need to study DBMS               -> Read the definition of normalization, and then briefly explain its importance in a sentence. (3 min)
+ok   I have a physics exam              -> Trace one worked example of a physics problem, focusing on the key steps. (5 min)
+ok   I have a physics exam              -> Recall the formula for the value of pi to the nearest whole number. (1 min)
+ok   I need to study calculus           -> Recall the definition of a derivative from your calculus notes, then write a simple example of its use. (3 min)
+WEAK I need to study calculus           -> Distill the derivative of x^2 as a single sentence. (3 min)   [setup-only]
+ok   I want to practice Python          -> Write a simple 'Hello, World!' program in Python, then test it by typing 'Hello, World!' (3 min)
+ok   I want to practice Python          -> Write five lines of code that calculate the area of a rectangle. (5 min)
+
+ollama gemma3:1b: 9/10 pass every check
