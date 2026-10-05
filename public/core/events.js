@@ -3,7 +3,7 @@
 const KEY = 'focusloop.events.v1';
 const MAX_EVENTS = 3000;
 
-export const EVENT_TYPES = ['goal_set', 'action_given', 'focus_start', 'stuck', 'distracted', 'returned', 'focus_end', 'abandoned'];
+export const EVENT_TYPES = ['goal_set', 'action_given', 'focus_start', 'stuck', 'distracted', 'returned', 'focus_end', 'abandoned', 'checkin'];
 
 export function createLog(storage) {
   function all() {

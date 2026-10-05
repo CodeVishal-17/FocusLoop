@@ -239,3 +239,28 @@ Contamination that remains, Gemma 3 1B only:
 - An off-topic question ("what is the capital of France") is treated as its subject.
 - With a real subject it can still pick a wrong concept ("the definition of a compiler in your operating systems notes").
 - The contamination checker is a word list used by tests and the evaluation script. It cannot catch every invented topic, and the running app does not reject a contaminated step.
+
+## 2026-10-05: accountability check-in (from the friend's feedback)
+
+Feedback from the real first use: the timer is useless because it runs in a Chrome tab he can simply leave.
+
+Change: during a focus session FocusLoop now asks "Are you still studying?" in two cases, decided by plain code in `public/core/checkin.js`:
+- **Quiet:** FocusLoop has not been touched for about a third of the session (5 min → every 4, 15 → 5, 25 → 8), and not in the last 90 seconds.
+- **Away:** the tab was in the background, or closed, for at least a minute, asked on return.
+
+Two answers: "I'm back" resumes and is logged; "I got distracted" goes into the existing recovery flow, where Gemma gives one small step. The question also goes in the tab title, the only thing visible from another tab. If the timer ends with a check-in unanswered, the session is not counted automatically: it asks "Did you stay with it?".
+
+It says only what it knows ("You haven't touched FocusLoop for 6 minutes… It can't see, so it's asking."). It does not detect other tabs or apps.
+
+- `npm test`: 62 tests, 62 pass (8 new in `test/checkin.test.js`).
+- `scripts/browser-checkin.mjs` in Chrome against a stub model: 18 of 18. Time passing and the tab being hidden were simulated by moving the page's clock and firing the visibility event; the app's own handlers ran.
+- Existing 70-check browser regression: 70 of 70.
+
+Found and fixed while testing: the first version saved the whole session each time the tab was hidden, which could overwrite newer state on reload. The "hidden since" time is now stored on its own.
+
+Limits:
+- "I'm back" is logged as a check-in answer. It does not change the Recovery Score, which still counts only distractions the student reports.
+- Nothing stops someone tapping "I'm back" and leaving again. This is a prompt to be honest, not enforcement.
+- A student reading a paper book is asked too, about three times a session.
+- Not tested with a real person switching tabs for real minutes, with hosted Gemma, or in Private Mode. The recovery step it hands over to is the same code as before.
+- The deployed site does not have this until it is pushed.

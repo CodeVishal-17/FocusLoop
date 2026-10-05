@@ -102,10 +102,21 @@
           <button id="back" class="btn primary">I'm back →</button>
         </div>
 
+        <div id="checkin" class="fill" hidden>
+          <p class="timeline center"><span id="checkin-clock"></span> left</p>
+          <div class="back-words">
+            <p class="big">Are you still studying?</p>
+            <p id="checkin-line" class="sub"></p>
+          </div>
+          <div class="grow"></div>
+          <button id="checkin-back" class="btn primary">I'm back</button>
+          <button id="checkin-distracted" class="btn outline" style="margin-top:10px">I got distracted</button>
+        </div>
+
         <div id="expired" class="fill" hidden>
           <div class="back-words">
             <p class="big">Your timer finished.</p>
-            <p class="sub">FocusLoop was closed at the time. Did you stay with it?</p>
+            <p id="expired-sub" class="sub">FocusLoop was closed at the time. Did you stay with it?</p>
           </div>
           <div class="grow"></div>
           <button id="expired-count" class="btn primary">Yes, count it</button>

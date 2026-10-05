@@ -4,6 +4,7 @@ import { cleanGoal } from './core/validate.js';
 import { createLog } from './core/events.js';
 import { summary, returnMessage, sessionRings } from './core/stats.js';
 import { ringPoint, elapsedFraction } from './core/ring.js';
+import { checkinDue, checkinLine } from './core/checkin.js';
 import { fallbackFor, SMALLEST_STEP } from './core/fallback.js';
 import * as S from './core/session.js';
 import { createAI } from './ai/index.js';
@@ -15,6 +16,7 @@ const PREF_PRIVATE = 'focusloop.private';
 const PREF_DURATION = 'focusloop.duration';
 const LAST_GOAL = 'focusloop.lastGoal';
 const FEEDBACK = 'focusloop.feedback';
+const HIDDEN_SINCE = 'focusloop.hiddenSince';   // when this tab last went to the background
 
 const storage = safeStorage();
 const log = createLog(storage);
@@ -100,7 +102,11 @@ function render() {
     const a = S.currentAction(session);
     $('focus-action').textContent = a.action;
     $('focus-source').textContent = SOURCE_LABEL[a.source];
-    $('focus-main').hidden = awayExpired || session.awaitingReturn;
+    const checking = !!session.checkin && !awayExpired && !session.awaitingReturn;
+    $('focus-main').hidden = awayExpired || session.awaitingReturn || checking;
+    $('checkin').hidden = !checking;
+    if (checking) $('checkin-line').textContent = checkinLine(session.checkin);
+    $('expired-sub').textContent = session.checkin ? "You hadn't answered the last check-in. Did you stay with it?" : 'FocusLoop was closed at the time. Did you stay with it?';
     $('recovery').hidden = !recovering;
     $('expired').hidden = !awayExpired;
     $('end-row').hidden = awayExpired;
@@ -161,10 +167,12 @@ function renderClock() {
   const text = S.formatClock(S.remainingMs(session));
   $('clock').textContent = text;
   $('recovery-clock').textContent = text;
+  $('checkin-clock').textContent = text;
   const arc = $('ring-arc');
   arc.style.strokeDasharray = RING_C;
   arc.style.strokeDashoffset = RING_C * (1 - elapsedFraction(session.startedAt, session.endsAt));
-  document.title = `${text} · FocusLoop`;
+  // The tab title is the only thing visible from another tab, so the question goes there too.
+  document.title = session.checkin && !session.awaitingReturn ? 'Still studying? · FocusLoop' : `${text} · FocusLoop`;
 }
 
 function renderMode() {
@@ -251,7 +259,7 @@ $('stuck').onclick = stuck;
 
 $('start-focus').onclick = () => {
   if (!session || busy) return;
-  session = S.start(session, duration);
+  session = { ...S.start(session, duration), lastSeenAt: Date.now() };
   log.append('focus_start', { sessionId: session.id, minutes: session.durationMin });
   save(); render();
 };
@@ -276,7 +284,7 @@ $('back').onclick = () => {
   if (!session?.awaitingReturn || !session.pendingRecovery) return;
   const a = session.pendingRecovery;
   const drifts = (session.drifts || []).map((d, i, all) => (i === all.length - 1 ? { ...d, returned: true } : d));
-  session = { ...S.withAction(S.markReturned(session), a), pendingRecovery: null, drifts };
+  session = { ...S.withAction(S.markReturned(session), a), pendingRecovery: null, drifts, lastSeenAt: Date.now() };
   log.append('returned', { sessionId: session.id });
   save(); render();
 };
@@ -284,7 +292,7 @@ $('back').onclick = () => {
 async function complete() {
   if (session?.phase !== 'focusing') return;
   awayExpired = false;
-  session = S.finish(session);
+  session = { ...S.finish(session), checkin: null };
   log.append('focus_end', { sessionId: session.id, minutes: session.durationMin, stuck: session.stuck, distracted: session.distracted, returned: session.returned });
   save(); render();
   const facts = { minutes: session.durationMin, distracted: session.distracted, returned: session.returned };
@@ -325,10 +333,62 @@ $('again').onclick = () => { session = null; save(); $('goal').value = storage.g
 $('open-progress').onclick = $('done-progress').onclick = () => { view = 'progress'; render(); };
 $('progress-back').onclick = () => { view = null; render(); };
 
+// ---------- accountability check-in ----------
+// FocusLoop only knows two things: when it was last touched, and whether this
+// tab was in the background. core/checkin.js decides when that is worth a question.
+function openCheckin(due) {
+  if (!due || busy || awayExpired) return;
+  session = { ...session, checkin: { ...due, at: Date.now() } };
+  save(); render();
+}
+
+function answerCheckin(answer) {
+  if (!session?.checkin) return;
+  log.append('checkin', { sessionId: session.id, reason: session.checkin.reason, answer });
+  session = { ...session, checkin: null, lastSeenAt: Date.now() };
+  save(); render();
+}
+
+$('checkin-back').onclick = () => answerCheckin('back');
+// "I got distracted" hands over to the existing recovery flow, which asks Gemma for one small step.
+$('checkin-distracted').onclick = () => { answerCheckin('distracted'); $('distracted').onclick(); };
+
+function takeHiddenSince() {
+  const t = Number(storage.getItem(HIDDEN_SINCE)) || null;
+  storage.removeItem(HIDDEN_SINCE);
+  return t;
+}
+
+// Any touch of FocusLoop counts as being here.
+function seen() {
+  if (session?.phase !== 'focusing' || session.checkin) return;
+  session = { ...session, lastSeenAt: Date.now() };
+  save();
+}
+document.addEventListener('pointerdown', seen);
+document.addEventListener('keydown', seen);
+
+document.addEventListener('visibilitychange', () => {
+  if (session?.phase !== 'focusing') return;
+  // Kept outside the session so that hiding the tab never rewrites the session itself.
+  if (document.hidden) { storage.setItem(HIDDEN_SINCE, String(Date.now())); return; }
+  openCheckin(checkinDue({ now: Date.now(), session, hiddenSince: takeHiddenSince() }));
+});
+
 // ---------- timer ----------
 setInterval(() => {
   if (session?.phase !== 'focusing') return;
-  if (S.isExpired(session) && !awayExpired) complete(); else renderClock();
+  if (S.isExpired(session) && !awayExpired) {
+    // A session that ends with a check-in unanswered is not counted automatically:
+    // the student is asked, the same way as when the timer ended with FocusLoop closed.
+    if (session.checkin && !session.awaitingReturn) {
+      log.append('checkin', { sessionId: session.id, reason: session.checkin.reason, answer: 'none' });
+      awayExpired = true; render();
+    } else complete();
+    return;
+  }
+  if (!awayExpired) openCheckin(checkinDue({ now: Date.now(), session }));
+  renderClock();
 }, 250);
 
 // ---------- Private Mode ----------
@@ -382,6 +442,12 @@ async function boot() {
   // A session whose timer ran out while the tab was closed is offered as
   // "count it or discard it" (the #expired panel) instead of being decided for the user.
   if (session?.phase === 'focusing' && S.isExpired(session)) awayExpired = true;
+  // Reopening a tab that was closed or in the background counts as coming back to it.
+  const hiddenSince = takeHiddenSince();
+  if (session?.phase === 'focusing' && !awayExpired) {
+    const due = checkinDue({ now: Date.now(), session, hiddenSince });
+    if (due) { session = { ...session, checkin: { ...due, at: Date.now() } }; save(); }
+  }
   // A refresh in the middle of a recovery request loses the answer; give a built-in one.
   if (session?.phase === 'focusing' && session.awaitingReturn && !session.pendingRecovery) {
     session = { ...session, pendingRecovery: { ...fallbackFor('recover', {}, session.distracted), source: 'fallback' } };
